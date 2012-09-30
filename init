@@ -84,4 +84,14 @@ echo "Restarting everything..."
 /etc/init.d/php-java-bridge restart
 
 echo ""
+echo "Configuring GIT..."
+echo -n "What is your name ? "
+read git_name
+echo -n "What is your e-mail address ? "
+read git_email
+
+git config --global user.name "$git_name"
+git config --global user.email "$git_email"
+
+echo ""
 echo "Congratulations, you made it ! Now it's time to work..."
