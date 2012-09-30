@@ -1,0 +1,82 @@
+#!/bin/sh
+
+echo "Welcome to the ADA Consultants default environment setup tool."
+echo ""
+echo "This tool will install all default dependencies to develop projects at"
+echo "ADA Consultants Inc..."
+echo -n "Press any key to continue..."
+read -s enter
+
+echo ""
+echo "Adding ADA Consultants Inc apt repository..."
+eval `cat /etc/lsb-release`
+wget -O - http://repo.ada-consult.com/repo.ada-consult.com.gpg.key | apt-key add - 
+sh -c "echo 'deb http://repo.ada-consult.com/ $DISTRIB_CODENAME main' > /etc/apt/sources.list.d/ada-consult.list"
+
+echo ""
+echo "Updating your system..."
+apt-get update
+apt-get -y upgrade
+
+echo ""
+echo "Installing packages..."
+echo "You will be ask to enter a password for MySQL root account. If you do not"
+echo "want to set a password, you will have to press enter at least three time."
+echo ""
+echo -n "Press any key to continue..."
+read -s enter
+
+apt-get -y install apache2 libapache2-mod-php5 php5-imagick php5-cli \
+	php5-mysql php5-mcrypt openjdk-6-jre-headless libmath-round-perl \
+	mysql-server apache2-mpm-prefork openssh-server php-pear php5-dev make \
+	apache2-prefork-dev patch vim ia32-libs jasperreports php-java-bridge \
+	libmysql-java subversion git
+
+echo ""
+echo "Configuring PHP for development..."
+pear update-channels
+pear upgrade-all
+pecl update-channels
+pecl upgrade-all
+
+echo "memory_limit=1024M" > /etc/php5/conf.d/memory_limit.ini
+echo "magic_quotes_gpc = Off" > /etc/php5/conf.d/magic.ini
+echo "display_errors = On" > /etc/php5/conf.d/errors.ini
+echo 'error_reporting = E_ALL' >> /etc/php5/conf.d/errors.ini
+echo 'log_errors = On' >> /etc/php5/conf.d/errors.ini
+
+echo ""
+echo "Installing APC..."
+printf "\n" | pecl install apc
+echo "extension=apc.so" > /etc/php5/conf.d/apc.ini
+echo "apc.shm_size = 512M" >> /etc/php5/conf.d/apc.ini
+echo "apc.slam_defense = 0" >> /etc/php5/conf.d/apc.ini
+
+echo ""
+echo "Configuring MySQL..."
+echo "$(cat <<"EOF"
+[mysqld]
+character-set-server = utf8
+collation-server = utf8_general_ci
+skip-character-set-client-handshake
+ 
+init-connect='SET NAMES utf8'
+ 
+sql_mode = "STRICT_TRANS_TABLES"
+EOF
+)" > /etc/mysql/conf.d/utf8.cnf
+
+echo ""
+echo "Configuring PHP/Java Bridge..."
+echo "EXTDIRS=/usr/share/jasperreports:/usr/share/java" >> /etc/php-java-bridge/php-java-bridge.conf
+echo "include_path=.:/usr/share/php:/usr/share/pear" > /etc/php5/conf.d/include_path.ini
+echo "include_path=$include_path\":/usr/local/php-java-bridge/home\"" >> /etc/php5/conf.d/php-java-bridge.ini
+
+echo ""
+echo "Restarting everything..."
+/etc/init.d/apache2 restart
+/etc/init.d/mysql restart
+/etc/init.d/php-java-bridge restart
+
+echo ""
+echo "Congratulations, you made it ! Now it's time to work..."
